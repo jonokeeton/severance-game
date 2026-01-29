@@ -171,28 +171,34 @@ export default function QuestPage() {
 
       // Try to sync to database but don't fail if it doesn't work
       if (gameState.id > 0) {
-        supabase
-          .from('game_state')
-          .update({
-            completed_quests: updatedGameState.completed_quests,
-            choices_made: updatedGameState.choices_made,
-            severance_level: updatedGameState.severance_level,
-          })
-          .eq('id', gameState.id)
-          .catch((err) => console.warn('Could not sync game state:', err));
+        try {
+          await supabase
+            .from('game_state')
+            .update({
+              completed_quests: updatedGameState.completed_quests,
+              choices_made: updatedGameState.choices_made,
+              severance_level: updatedGameState.severance_level,
+            })
+            .eq('id', gameState.id);
+        } catch (err) {
+          console.warn('Could not sync game state:', err);
+        }
       }
 
       if (factionProgress.id > 0) {
-        supabase
-          .from('faction_progress')
-          .update({
-            influence: newInfluence,
-            reputation: newReputation,
-            resources: newResources,
-            quest_count: updatedProgress.quest_count,
-          })
-          .eq('id', factionProgress.id)
-          .catch((err) => console.warn('Could not sync progress:', err));
+        try {
+          await supabase
+            .from('faction_progress')
+            .update({
+              influence: newInfluence,
+              reputation: newReputation,
+              resources: newResources,
+              quest_count: updatedProgress.quest_count,
+            })
+            .eq('id', factionProgress.id);
+        } catch (err) {
+          console.warn('Could not sync progress:', err);
+        }
       }
 
       setSelectedChoice(choice);
