@@ -42,3 +42,36 @@ export interface FactionInfo {
   bgColor: string;
   accentColor: string;
 }
+
+export interface Choice {
+  id: string;
+  text: string;
+  description: string;
+  consequences: {
+    influence?: number;
+    reputation?: number;
+    resources?: number;
+    severance_level?: number;
+  };
+  factionImpact?: {
+    faction: Faction;
+    influenceChange: number;
+  };
+}
+
+export interface Quest {
+  id: string;
+  title: string;
+  faction: Faction;
+  description: string;
+  narrative: string;
+  order: number;
+  choices: Choice[];
+}
+
+export interface CompletedQuest {
+  questId: string;
+  timestamp: string;
+  choiceId: string;
+  outcome: any;
+}

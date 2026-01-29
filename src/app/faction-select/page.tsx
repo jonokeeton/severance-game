@@ -29,56 +29,51 @@ export default function FactionSelectPage() {
     checkUser();
   }, [router]);
 
-  const handleSelectFaction = async () => {
-    if (!selectedFaction || !user) return;
-
+  const handleSelectFaction = async (factionId: string) => {
+    if (!factionId || !user) return;
     setLoading(true);
-
     try {
-      // Update user faction
-      const { error: userError } = await supabase
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (!authUser) {
+        router.push('/auth');
+        return;
+      }
+
+      console.log('Step 1 - Saving faction:', factionId);
+
+      // STEP 1: Update auth metadata with faction
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { faction: factionId }
+      });
+
+      if (metadataError) {
+        console.error('Error updating auth metadata:', metadataError);
+        alert('Failed to save faction to profile');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Step 2 - Faction saved to auth metadata');
+
+      // STEP 2: Also update users table
+      const { error: tableError } = await supabase
         .from('users')
-        .update({ faction: selectedFaction })
-        .eq('id', user.id);
+        .update({ faction: factionId })
+        .eq('id', authUser.id);
 
-      if (userError) throw userError;
+      if (tableError) {
+        console.warn('Warning: Could not update users table:', tableError);
+        // Don't fail here - auth metadata is saved which is what matters
+      } else {
+        console.log('Step 3 - Faction saved to users table');
+      }
 
-      // Create faction progress entry
-      const { error: progressError } = await supabase
-        .from('faction_progress')
-        .insert([
-          {
-            user_id: user.id,
-            faction: selectedFaction,
-            influence: 0,
-            reputation: 0,
-            resources: 100,
-            quest_count: 0,
-          },
-        ]);
-
-      if (progressError) throw progressError;
-
-      // Create game state entry
-      const { error: stateError } = await supabase
-        .from('game_state')
-        .insert([
-          {
-            user_id: user.id,
-            current_act: 1,
-            severance_level: 0,
-            choices_made: {},
-            completed_quests: [],
-          },
-        ]);
-
-      if (stateError) throw stateError;
-
+      console.log('Step 4 - Redirecting to dashboard');
       router.push('/dashboard');
     } catch (error) {
       console.error('Error selecting faction:', error);
       alert('Failed to select faction. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
@@ -120,7 +115,7 @@ export default function FactionSelectPage() {
 
         <div className="text-center">
           <button
-            onClick={handleSelectFaction}
+            onClick={() => handleSelectFaction(selectedFaction!)}
             disabled={!selectedFaction || loading}
             className="px-12 py-3 bg-teal-600 hover:bg-teal-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold rounded-lg transition text-lg"
           >
